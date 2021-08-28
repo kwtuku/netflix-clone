@@ -17,6 +17,7 @@ export const Nav = () => {
       window.removeEventListener("scroll", handleShow);
     };
   }, []);
+
   return (
     <div className={`Nav ${show && "Nav-black"}`}>
       <img
