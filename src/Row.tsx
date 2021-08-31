@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from './axios';
 import './Row.scss';
 import YouTube from 'react-youtube';
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 const movieTrailer = require('movie-trailer')
 
 const base_url = 'https://image.tmdb.org/t/p/original';
@@ -63,23 +66,34 @@ export const Row = ({ title, fetchUrl, isLargeRow }: Props) => {
     }
   };
 
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 5,
+    slidesToScroll: 5,
+  };
+
   return (
     <div className="Row">
       <h2>{title}</h2>
       <div className="Row-posters">
-        {movies.map((movie, i) => (
-          <img
-            key={movie.id}
-            className={`Row-poster ${isLargeRow && "Row-poster-large"}`}
-            src={`${base_url}${
-              isLargeRow ? movie.poster_path : movie.backdrop_path
-            }`}
-            alt={movie.name}
-            onClick={() => handleClick(movie)}
-          />
-        ))}
+        <Slider {...settings}>
+          {movies.map((movie) => (
+            <img
+              key={movie.id}
+              className={`Row-poster ${isLargeRow && "Row-poster-large"}`}
+              src={`${base_url}${isLargeRow ? movie.poster_path : movie.backdrop_path
+                }`}
+              alt={movie.name}
+              onClick={() => handleClick(movie)}
+            />
+          ))}
+        </Slider>
       </div>
-      {trailerUrl && <YouTube videoId={trailerUrl} opts={opts} />}
+      <div className="Row-youtube">
+        {trailerUrl && <YouTube videoId={trailerUrl} opts={opts} />}
+      </div>
     </div>
   );
 };
