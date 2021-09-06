@@ -13,6 +13,7 @@ type movieProps = {
 
 export const Banner = () => {
   const [movie, setMovie] = useState<movieProps>({});
+
   useEffect(() => {
     async function fetchData() {
       const request = await axios.get(requests.fetchNetflixOriginals);
@@ -22,10 +23,19 @@ export const Banner = () => {
         Math.floor(Math.random() * request.data.results.length - 1)
         ]
       );
+
       return request;
     }
     fetchData();
   }, []);
+
+  const backgroundImagePath = movie?.backdrop_path ? `url("https://image.tmdb.org/t/p/original${movie.backdrop_path}")` : '' ;
+
+  const style = {
+    backgroundImage: backgroundImagePath,
+    backgroundPosition: "center center",
+    backgroundSize: "cover",
+  }
 
   function truncate(str: any, n: number) {
     if (str !== undefined) {
@@ -34,14 +44,7 @@ export const Banner = () => {
   }
 
   return (
-    <header
-      className="Banner"
-      style={{
-        backgroundSize: "cover",
-        backgroundImage: `url("https://image.tmdb.org/t/p/original${movie?.backdrop_path}")`,
-        backgroundPosition: "center center",
-      }}
-    >
+    <header className="Banner" style={style}>
       <div className="Banner-contents">
         <h2 className="banner-title">
           {movie?.title || movie?.name || movie?.original_name}
