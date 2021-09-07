@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from './axios';
 import './Row.scss';
-import YouTube from 'react-youtube';
-const movieTrailer = require('movie-trailer')
+import Slider from 'react-slick';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
 
 const base_url = 'https://image.tmdb.org/t/p/original';
 
@@ -14,24 +15,19 @@ type Props = {
 
 type Movie = {
   id: string;
-  name: string;
-  title: string;
+  origin_country: string;
   original_name: string;
+  original_title: string;
   poster_path: string;
   backdrop_path: string;
-};
-
-type Options = {
-  height: string;
-  width: string;
-  playerVars: {
-    autoplay: 0 | 1 | undefined;
-  };
+  release_date: string;
 };
 
 export const Row = ({ title, fetchUrl, isLargeRow }: Props) => {
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [trailerUrl, setTrailerUrl] = useState<string | null>('');
+
+  const [videoId, setVideoId] = useState('');
+  const YOUTUBE_SEARCH_API_URI = 'https://www.googleapis.com/youtube/v3/search?';
 
   useEffect(() => {
     async function fetchData() {
@@ -42,44 +38,84 @@ export const Row = ({ title, fetchUrl, isLargeRow }: Props) => {
     fetchData();
   }, [fetchUrl]);
 
-  const opts: Options = {
-    height: '390',
-    width: '640',
-    playerVars: {
-      autoplay: 1,
-    },
+  const handleClick = async (movie: Movie) => {
+    let queryWord;
+    if (movie.original_title) {
+      queryWord = movie.original_title;
+    } else if (movie.original_name) {
+      queryWord = movie.original_name;
+    }
+
+    let releaseDate = '1970-01-01T00:00:00Z';
+    if (movie.release_date) {
+      const dateElements: any = movie.release_date.split('-');
+      releaseDate = `${dateElements[0] - 1}-${dateElements[1]}-${dateElements[2]}T00:00:00Z`;
+    }
+
+    const params: any = {
+      key: process.env.REACT_APP_YOUTUBE_API_KEY,
+      q: queryWord,
+      type: 'video',
+      maxResults: '1',
+      order: 'viewCount',
+      publishedAfter: releaseDate,
+      regionCode: movie.origin_country ? movie.origin_country : 'JP',
+      videoEmbeddable: true,
+    };
+
+    const queryParams = new URLSearchParams(params);
+
+    fetch(YOUTUBE_SEARCH_API_URI + queryParams)
+      .then((res) => res.json())
+      .then(
+        (result) => {
+          if (result.items && result.items.length !== 0) {
+            const firstItem = result.items[0];
+            setVideoId(firstItem.id.videoId);
+          }
+        },
+        (error) => {
+          console.error(error);
+        }
+      );
   };
 
-  const handleClick = async (movie: Movie) => {
-    if (trailerUrl) {
-      setTrailerUrl('');
-    } else {
-      movieTrailer(movie?.name || '')
-        .then((url: string) => {
-          const urlParams = new URLSearchParams(new URL(url).search);
-          setTrailerUrl(urlParams.get('v'));
-        })
-        .catch((error: Error) => console.log(error))
-    }
+  const settings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 5,
+    slidesToScroll: 5,
   };
 
   return (
     <div className="Row">
       <h2>{title}</h2>
       <div className="Row-posters">
-        {movies.map((movie, i) => (
-          <img
-            key={movie.id}
-            className={`Row-poster ${isLargeRow && "Row-poster-large"}`}
-            src={`${base_url}${
-              isLargeRow ? movie.poster_path : movie.backdrop_path
-            }`}
-            alt={movie.name}
-            onClick={() => handleClick(movie)}
-          />
-        ))}
+        <Slider {...settings}>
+          {movies.filter(movie => movie.poster_path && movie.backdrop_path).map((movie) => (
+            <img
+              key={movie.id}
+              className={`Row-poster ${isLargeRow && "Row-poster-large"}`}
+              src={`${base_url}${isLargeRow ? movie.poster_path : movie.backdrop_path
+                }`}
+              alt={movie.original_name}
+              onClick={() => handleClick(movie)}
+            />
+          ))}
+        </Slider>
       </div>
-      {trailerUrl && <YouTube videoId={trailerUrl} opts={opts} />}
+      <div className="Row-youtube">
+        {videoId &&
+          <iframe
+            width="640"
+            height="360"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            frameBorder="0"
+            allowFullScreen
+          />
+        }
+      </div>
     </div>
   );
 };
